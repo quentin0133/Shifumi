@@ -7,10 +7,7 @@ import fr.dawan.shifumeunmi.discord.listeners.ReactionListener;
 import lombok.Getter;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.ChannelAction;
 import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder;
@@ -25,11 +22,12 @@ import java.util.function.Supplier;
 
 @Getter
 public class ShifumiBot {
-    private final ShardManager shardManager;
+    private static ShardManager shardManager;
 
-    @Getter
-    // private static final Map<Guild, TextChannel> messageChannelMapByGuild = new HashMap<>();
-    private static final Map<Guild, TextChannel> messageChannelMapByGuild = new HashMap<>();
+    public static Guild findGuildById(long id) {
+        return shardManager.getGuildById(id);
+    }
+
     @Getter
     private static final String nameChannel = "shifumi";
 
@@ -38,6 +36,7 @@ public class ShifumiBot {
         builder.setMemberCachePolicy(MemberCachePolicy.ALL)
             .enableIntents(GatewayIntent.GUILD_MEMBERS,
                 GatewayIntent.GUILD_MESSAGE_REACTIONS,
+                GatewayIntent.GUILD_EMOJIS_AND_STICKERS,
                 GatewayIntent.GUILD_MESSAGES,
                 GatewayIntent.MESSAGE_CONTENT
             )

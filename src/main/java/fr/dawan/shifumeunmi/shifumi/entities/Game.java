@@ -16,11 +16,15 @@ public class Game {
     private ShifumiAction botAction;
     private PlayerGameState state;
     private long messageId;
+    private long channelId;
+    private long guildId;
 
-    public Game(String playerEffectiveName, long messageId) {
+    public Game(String playerEffectiveName, Message message) {
         this.playerEffectiveName = playerEffectiveName;
-        this.state = PlayerGameState.getState(playerAction, botAction);
-        this.messageId = messageId;
+        this.state = PlayerGameState.UNDEFINED;
+        messageId = message.getIdLong();
+        channelId = message.getChannel().getIdLong();
+        guildId = message.getGuild().getIdLong();
     }
 
     public Game startGame(ShifumiAction playerAction) {

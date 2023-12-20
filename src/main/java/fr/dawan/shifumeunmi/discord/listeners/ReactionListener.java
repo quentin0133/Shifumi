@@ -3,9 +3,8 @@ package fr.dawan.shifumeunmi.discord.listeners;
 import fr.dawan.shifumeunmi.shifumi.enums.ShifumiAction;
 import fr.dawan.shifumeunmi.shifumi.service.GameService;
 import lombok.extern.java.Log;
-import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageReaction;
-import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
@@ -18,62 +17,41 @@ public class ReactionListener extends ListenerAdapter {
     @Override
     public void onMessageReactionAdd(@NotNull MessageReactionAddEvent event) {
         //log.info("onMessageReactionAdd");
-        User authorReaction = event.getMember().getUser();
-        if (!GameService.isPlaying(authorReaction)) return;
+        Member authorReaction = event.getMember();
 
-        // Is the message retrieve equals to the message
-        // (Indirectly, it will check if the author that reacted is the author that
-        // ask the command)
-        long idMessageInteractive = GameService.getIdMessage(authorReaction);
-        if (idMessageInteractive != event.getMessageIdLong()) return;
+        // If the member doesn't exist or it's the bot, we return
+        if (!GameService.isMessageGame(event.getMessageIdLong()) || authorReaction == null ||
+                authorReaction.getUser().equals(event.getJDA().getSelfUser())) return;
 
+        long idAuthorReaction = authorReaction.getIdLong();
 
-        // Retrieve the message with the author name
-        //Message message = event.retrieveMessage().complete();
-
-
-        // Fetch the message to know the reaction added
-        // Message message = event.getChannel().retrieveMessageById(event.getMessageIdLong()).complete();
-
-        // Update reaction list link to this user
-        // For the next time, we can see if there's a difference
-        // GameService.updateMessage(authorReaction, message);
+        // If member doesn't play or it's not his message, remove the reaction and return
+        if (!GameService.isPlaying(authorReaction.getUser().getIdLong()) ||
+                GameService.getGameByIdMember(idAuthorReaction).getMessageId() != event.getMessageIdLong()) {
+            event.getReaction().removeReaction(authorReaction.getUser()).queue();
+            return;
+        }
 
         try {
             // Get reaction difference to watch if there's more than one reaction
-            /*MessageReaction reactionAdded = getFirstDifferenceReaction(interactiveMessage.getReactions(),
-                message.getReactions());*/
             MessageReaction reactionAdded = event.getReaction();
             // Filter wrong reaction, delete the reaction
             String reactionUnicode = reactionAdded.getEmoji().asUnicode().getAsCodepoints().toUpperCase();
             if (!ShifumiAction.hasReaction(reactionUnicode)) {
-                event.retrieveMessage().queue(message ->
-                    message.removeReaction(reactionAdded.getEmoji()).queue());
+                event.getReaction().removeReaction(authorReaction.getUser()).queue();
                 return;
             }
 
             event.getChannel()
                 .sendMessage(
-                    GameService.startGame(authorReaction,
+                    GameService.startGame(idAuthorReaction,
                         ShifumiAction.getActionFromUnicode(reactionUnicode)).toString()
                 ).queue(messageResult -> event.retrieveMessage().queue(messageInteractive ->
-                    messageInteractive.delete().queue()));
+                    messageInteractive.delete().queue(v -> InteractiveCommandListener.clean(idAuthorReaction))));
         }
-        catch (NoSuchElementException e) {
-            event.getChannel().sendMessage(e.getMessage()).queue();
+        catch (Exception e) {
+            event.getReaction().removeReaction(authorReaction.getUser()).queue();
         }
     }
-    //endregion
-
-    //region Message Reaction Add Methods
-/*    private MessageReaction getFirstDifferenceReaction(List<MessageReaction> previousMessages,
-                                                       List<MessageReaction> newMessages)
-        throws NoSuchElementException {
-        Optional<MessageReaction> messageReaction = newMessages.stream()
-            .filter(newMessage -> !previousMessages.contains(newMessage) ||
-            previousMessages.get(previousMessages.indexOf(newMessage)).getCount() != newMessage.getCount())
-            .findFirst();
-        return messageReaction.orElseThrow();
-    }*/
     //endregion
 }

@@ -4,31 +4,29 @@ import fr.dawan.shifumeunmi.shifumi.entities.Game;
 import fr.dawan.shifumeunmi.shifumi.enums.BotCommand;
 import fr.dawan.shifumeunmi.shifumi.enums.ShifumiAction;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.User;
 
 import java.util.*;
 
 public class GameService {
     private GameService() {}
 
-    private static final int LIMIT_LIST = 20;
+    private static final int LIMIT_LIST = 5;
 
-    // private static final Map<Long, LinkedList<Game>> historicGames = new LinkedList<>();
     private static final LinkedList<Game> historicGames = new LinkedList<>();
-    private static final Map<User, Game> gameSession = new HashMap<>();
+    private static final Map<Long, Game> gameSession = new HashMap<>();
 
-    public static void createGame(User user, long message) {
-        gameSession.put(user, new Game("<@%s>".formatted(user.getIdLong()), message));
+    public static void createGame(long memberId, Message message) {
+        gameSession.put(memberId, new Game("<@%s>".formatted(memberId), message));
     }
 
-    public static Game startGame(User user, ShifumiAction playerAction) {
-        Game game = gameSession.get(user).startGame(playerAction);
+    public static Game startGame(long idUser, ShifumiAction playerAction) {
+        Game game = gameSession.get(idUser).startGame(playerAction);
 
         historicGames.addLast(game);
         if (historicGames.size() > LIMIT_LIST)
             historicGames.removeFirst();
 
-        gameSession.remove(user);
+        gameSession.remove(idUser);
         return game;
     }
 
@@ -36,24 +34,12 @@ public class GameService {
         return historicGames;
     }
 
-    public static boolean isPlaying(User user) throws NullPointerException {
-        return gameSession.containsKey(user);
+    public static boolean isPlaying(long memberId) throws NullPointerException {
+        return gameSession.containsKey(memberId);
     }
 
-    public static void updateMessage(User authorReaction, Message message) {
-        gameSession.get(authorReaction).setMessageId(message.getIdLong());
-    }
-
-    public static void updateMessage(long idMessage) {
-        gameSession.entrySet().stream()
-                .filter(entry -> entry.getValue().getMessageId() == idMessage)
-                .findFirst()
-                .ifPresent(entry -> entry.getValue()
-                .setMessageId(idMessage));
-    }
-
-    public static long getIdMessage(User authorReaction) {
-        return gameSession.get(authorReaction).getMessageId();
+    public static Game getGameByIdMember(long memberId) {
+        return gameSession.get(memberId);
     }
 
     public static String helpMessage() {
@@ -64,5 +50,9 @@ public class GameService {
                 .append(command.getDescription()).append('\n');
         }
         return helpMessage.toString();
+    }
+
+    public static boolean isMessageGame(long messageId) {
+        return gameSession.values().stream().anyMatch(game -> game.getMessageId() == messageId);
     }
 }

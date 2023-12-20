@@ -20,7 +20,6 @@ public class LifeCycle extends ListenerAdapter {
     }
 
     private static void init(Guild guild, TextChannel channel) {
-        ShifumiBot.getMessageChannelMapByGuild().put(guild, channel);
         channel.sendMessage(GameService.helpMessage()).queue();
     }
 }
